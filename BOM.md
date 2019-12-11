@@ -2,6 +2,7 @@ Bill Of Materials
 =================
 
 * Prusa i3 Bear MK3 frame kit
+* Filafarm Filabase  218x218 230V/200W heated bed kit
 * 2x 12mm smooth rods, length 370 mm
 * 4x LM12UU linear ball bearings (European specs, 12x22x32 mmm)
 * 2x Topball TK12 self-aligning linear ball bearings
