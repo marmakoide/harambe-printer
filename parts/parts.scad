@@ -1,8 +1,15 @@
 // --- Parameters ------------------------------------------------------------
 
+LM12UUE_L = 32;
+LM12UUE_D = 22;
+
 Y_ROD_DIAMETER = 12;
 Y_ROD_GAP = 170;
 
+Y_BEARING_LENGTH = LM12UUE_L;
+Y_BEARING_DIAMETER = LM12UUE_D;
+Y_BEARING_BLOCK_CHAMFER = 1;
+Y_BEARING_BLOCK_SIZE = [40, 28, Y_BEARING_LENGTH + Y_BEARING_BLOCK_CHAMFER];
 Y_BEARING_BLOCK_FIXATION_HOLE_GAP_X = 30.5;
 Y_BEARING_BLOCK_FIXATION_HOLE_GAP_Y = 18;
 
@@ -10,7 +17,9 @@ Y_BELT_CLAMP_FIXATION_HOLE_GAP = 20;
 
 BED_SIZE = 218;
 BED_SUPPORT_ADJUSTEMENT_SCREW_GAP = 4;
-BED_SUPPORT_ADJUSTEMENT_SCREW_SLOT_LENGTH = 2;
+BED_SUPPORT_ADJUSTEMENT_SCREW_SLOT_LENGTH = 3;
+
+M3_LASER_CUT_HOLE_DIAMETER = 3.;
 
 M4_LASER_CUT_HOLE_DIAMETER = 4.;
 
@@ -68,9 +77,21 @@ module kcircle(radius) {
 	polygon(radius * [for(alpha = linspace_noend(0, 360, n)) [cos(alpha), sin(alpha)]], convexity = 1);	
 }
 
+module kteardrop(radius) {
+  angle = 270;
+	n = chord_len_2_step_count(CHORD_LEN, radius, angle);
+  rotate(45)
+    polygon(concat([[radius,-radius]], radius * [for(angle = linspace(0, angle, n)) [cos(angle), sin(angle)]]), convexity = 1);
+}
+
 module kcylinder(radius, height) {
-	linear_extrude(height = height, center = true)
+	linear_extrude(height = height, center = true, convexity = 1)
 		kcircle(radius);
+}
+
+module kcone(radius, height) {
+  linear_extrude(height = height, center = true, scale = 0, convexity = 1)
+    kcircle(radius);
 }
 
 module kcapsule(length, radius) {
@@ -92,7 +113,71 @@ module kcapsule_from_end_points(A, B, radius) {
 }
 
 
- 
+
+// --- Commonly used elements -------------------------------------------------
+
+module m5_teardrop_3d_print() {
+  kteardrop(M5_LASER_CUT_HOLE_DIAMETER / 2);
+}
+
+module m5_circle_laser_cut() {
+  kcircle(M5_LASER_CUT_HOLE_DIAMETER / 2);
+}
+
+
+
+// --- Y bearing block --------------------------------------------------------
+
+module y_bearing_block() {
+  FLAT_HEIGHT = 4;
+  A = Y_BEARING_BLOCK_SIZE[0] - Y_BEARING_BLOCK_FIXATION_HOLE_GAP_X;
+  
+  BEARING_BLOCK_FIXATION_HOLE_POS_LIST = [
+    [-Y_BEARING_BLOCK_FIXATION_HOLE_GAP_X, 0, -Y_BEARING_BLOCK_FIXATION_HOLE_GAP_Y],
+    [ Y_BEARING_BLOCK_FIXATION_HOLE_GAP_X, 0, -Y_BEARING_BLOCK_FIXATION_HOLE_GAP_Y],
+    [-Y_BEARING_BLOCK_FIXATION_HOLE_GAP_X, 0,  Y_BEARING_BLOCK_FIXATION_HOLE_GAP_Y],
+    [ Y_BEARING_BLOCK_FIXATION_HOLE_GAP_X, 0,  Y_BEARING_BLOCK_FIXATION_HOLE_GAP_Y]
+  ] / 2;
+  
+  difference() {
+    // Main shape
+    linear_extrude(height = Y_BEARING_BLOCK_SIZE[2], convexity = 2, center = true)
+      difference() {
+        // Bearing hole profile
+        polygon([
+          [ Y_BEARING_BLOCK_SIZE[0] / 2, -Y_BEARING_BLOCK_SIZE[1] / 2],
+          [ Y_BEARING_BLOCK_SIZE[0] / 2,  Y_BEARING_BLOCK_SIZE[1] / 2 - FLAT_HEIGHT],
+          [ Y_BEARING_BLOCK_SIZE[0] / 2 - A,  Y_BEARING_BLOCK_SIZE[1] / 2 - FLAT_HEIGHT],
+          [ Y_BEARING_BLOCK_SIZE[0] / 2 - A - FLAT_HEIGHT,  Y_BEARING_BLOCK_SIZE[1] / 2],
+          [-Y_BEARING_BLOCK_SIZE[0] / 2 + A + FLAT_HEIGHT,  Y_BEARING_BLOCK_SIZE[1] / 2], 
+          [-Y_BEARING_BLOCK_SIZE[0] / 2 + A,  Y_BEARING_BLOCK_SIZE[1] / 2 - FLAT_HEIGHT],
+          [-Y_BEARING_BLOCK_SIZE[0] / 2,  Y_BEARING_BLOCK_SIZE[1] / 2 - FLAT_HEIGHT],
+          [-Y_BEARING_BLOCK_SIZE[0] / 2, -Y_BEARING_BLOCK_SIZE[1] / 2],        
+        ], convexity = 1);
+      
+        // Bearing hole
+        kcircle(Y_BEARING_DIAMETER / 2);
+      }
+      
+    // Fixation holes
+    for(pos = BEARING_BLOCK_FIXATION_HOLE_POS_LIST)
+      translate(pos)
+        rotate(90, [1, 0, 0])
+          linear_extrude(height = 2 * Y_BEARING_BLOCK_SIZE[1], convexity = 1, center = true)
+            rotate(90)
+              m5_teardrop_3d_print();
+    
+    //
+    translate([0, 0, Y_BEARING_DIAMETER / 2])
+      rotate(180, [1, 0, 0])
+        kcone(Y_BEARING_DIAMETER / 2 + 2 * Y_BEARING_BLOCK_CHAMFER, Y_BEARING_DIAMETER / 2 + 2 * Y_BEARING_BLOCK_CHAMFER);   
+  }  
+}
+
+//y_bearing_block();
+
+
+
 // --- Bed support plate ------------------------------------------------------
 
 module bed_support_plate() {
@@ -106,9 +191,11 @@ module bed_support_plate() {
     [ Y_BEARING_BLOCK_FIXATION_HOLE_GAP_X,  Y_BEARING_BLOCK_FIXATION_HOLE_GAP_Y]
   ] / 2;
   
+ 
+  A = (Y_BEARING_BLOCK_SIZE[2] + Y_BEARING_BLOCK_CHAMFER) / 2;
   BEARING_BLOCK_POS_COORDS_LIST = [
-    [-Y_ROD_GAP / 2,  (BED_SIZE / 2 - 17 - BED_SIZE / 4)],
-    [-Y_ROD_GAP / 2, -(BED_SIZE / 2 - 17 - BED_SIZE / 4)],  
+    [-Y_ROD_GAP / 2,  (BED_SIZE / 4 - A)],
+    [-Y_ROD_GAP / 2, -(BED_SIZE / 4 - A)],  
     [ Y_ROD_GAP / 2, 0]
   ];
   
@@ -139,20 +226,19 @@ module bed_support_plate() {
       translate((BED_SIZE / 2 - BED_SUPPORT_ADJUSTEMENT_SCREW_GAP) * pos)
         rotate(atan2(pos[1], pos[0]))
           translate([BED_SUPPORT_ADJUSTEMENT_SCREW_SLOT_LENGTH / 2, 0])
-            kcapsule(BED_SUPPORT_ADJUSTEMENT_SCREW_SLOT_LENGTH, M4_LASER_CUT_HOLE_DIAMETER / 2);
+            kcapsule(BED_SUPPORT_ADJUSTEMENT_SCREW_SLOT_LENGTH, M3_LASER_CUT_HOLE_DIAMETER / 2);
     
     // Bearing block fixation holes
     for(bpos = BEARING_BLOCK_POS_COORDS_LIST)
       for(pos = BEARING_BLOCK_FIXATION_HOLE_POS_LIST)
         translate(bpos + pos)
-          kcircle(M5_LASER_CUT_HOLE_DIAMETER / 2);
+          m5_circle_laser_cut();
       
     // Belt clamp fixation holes
     for(bpos = BELT_CLAMP_COORDS_LIST)
       for(pos = BELT_CLAMP_FIXATION_HOLE_POS_LIST)
         translate(bpos + pos)
-          kcircle(M5_LASER_CUT_HOLE_DIAMETER / 2);  
+          m5_circle_laser_cut();
   }
 }
-
-bed_support_plate();
+//bed_support_plate();
