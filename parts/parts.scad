@@ -202,7 +202,6 @@ module y_bearing_block() {
   }  
 }
 
-//y_bearing_block();
 
 
 
@@ -301,4 +300,4 @@ module bed_support_plate_profile() {
   }
 }
 
-//bed_support_plate_profile();
+bed_support_plate_profile();
