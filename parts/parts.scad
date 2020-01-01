@@ -1,11 +1,23 @@
 // --- Parameters ------------------------------------------------------------
 
+X_BEAM_SIZE = 370;
+Y_BEAM_SIZE = 331;
+
 LM12UUE_L = 32;
 LM12UUE_D = 22;
 
+// Y axis design
 Y_ROD_DIAMETER = 12;
+Y_ROD_LENGTH = Y_BEAM_SIZE + 40;
 Y_ROD_GAP = 170;
 
+// Y rod holders
+Y_ROD_HOLDER_SIZE = [50, 40, 2 * 4 + Y_ROD_DIAMETER];
+
+// Y motor mount
+Y_MOTOR_MOUNT_WIDTH = 23;
+
+// Y bearing blocks
 Y_BEARING_LENGTH = LM12UUE_L;
 Y_BEARING_DIAMETER = LM12UUE_D;
 Y_BEARING_BLOCK_CHAMFER = 1;
@@ -13,11 +25,17 @@ Y_BEARING_BLOCK_SIZE = [40, 28, Y_BEARING_LENGTH + Y_BEARING_BLOCK_CHAMFER];
 Y_BEARING_BLOCK_FIXATION_HOLE_GAP_X = 30.5;
 Y_BEARING_BLOCK_FIXATION_HOLE_GAP_Y = 18;
 
+// Y axis fitting jigs 
+Y_AXIS_FITTING_JIG_TOLERANCE = .2;
+Y_AXIS_FITTING_JIG_CHAMFER = 2;
+
 Y_BELT_CLAMP_FIXATION_HOLE_GAP = 20;
 
 BED_SIZE = 218;
+
 BED_SUPPORT_ADJUSTEMENT_SCREW_GAP = 4;
 BED_SUPPORT_ADJUSTEMENT_SCREW_SLOT_LENGTH = 3;
+BED_SUPPORT_THICKNESS = 6;
 
 M3_LASER_CUT_HOLE_DIAMETER = 3.;
 
@@ -112,6 +130,16 @@ module kcapsule_from_end_points(A, B, radius) {
 			kcapsule(length, radius);
 }
 
+module k_negative_rectangle(size, chamfer) {
+  square(size, center = true);
+  polygon([
+            [-(size[0] / 2 + chamfer), size[1] / 2],
+            [  size[0] / 2 + chamfer,  size[1] / 2],
+            [  size[0] / 2,            size[1] / 2 - chamfer],
+            [ -size[0] / 2,            size[1] / 2 - chamfer]
+          ], convexity = 1);
+}
+
 
 
 // --- Commonly used elements -------------------------------------------------
@@ -178,9 +206,40 @@ module y_bearing_block() {
 
 
 
+// --- Y axis fitting jig -----------------------------------------------------
+
+module y_axis_fitting_jig_a_profile() {
+  difference() {
+    // Main shape
+    square(size = [X_BEAM_SIZE, 40], center = true);
+    
+    // Y rod holder
+    for(x = [-1, 1])
+      translate([x * Y_ROD_GAP / 2, 10, 0])
+        k_negative_rectangle([Y_ROD_HOLDER_SIZE[0] + 2 * Y_AXIS_FITTING_JIG_TOLERANCE, 20 + Y_AXIS_FITTING_JIG_TOLERANCE], Y_AXIS_FITTING_JIG_CHAMFER);
+    
+    // Fixation holes
+    a = (X_BEAM_SIZE / 2 - Y_ROD_HOLDER_SIZE[0] / 2 - Y_ROD_GAP / 2) / 2;
+    for(x = [-1, 1])
+      translate([-x * (a + Y_ROD_HOLDER_SIZE[0] / 2 + Y_ROD_GAP / 2), 10, 0])
+        m5_circle_laser_cut();
+  }
+}
+
+module y_axis_fitting_jig_b_profile() {
+  difference() {
+    y_axis_fitting_jig_a_profile();
+    
+    translate([0, 10, 0])
+      k_negative_rectangle([Y_MOTOR_MOUNT_WIDTH + 2 * Y_AXIS_FITTING_JIG_TOLERANCE, 20 + Y_AXIS_FITTING_JIG_TOLERANCE], Y_AXIS_FITTING_JIG_CHAMFER);
+  }
+}
+
+
+
 // --- Bed support plate ------------------------------------------------------
 
-module bed_support_plate() {
+module bed_support_plate_profile() {
   BED_FIXATION_HOLE_POS_COORDS_LIST =
     [[-1, -1], [-1, 1], [1, 1], [1, -1], [-1, 0]];
   
@@ -241,4 +300,5 @@ module bed_support_plate() {
           m5_circle_laser_cut();
   }
 }
-//bed_support_plate();
+
+//bed_support_plate_profile();
