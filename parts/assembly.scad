@@ -136,7 +136,7 @@ module bed_assembly() {
   // belt clamps
   translate([10, 0, 0])
    rotate(180, [0, 0, 1])
-    translate([2, 0, 0])
+    translate([0, 0, 0])
     y_belt_clamp();
   
   // bearing blocks

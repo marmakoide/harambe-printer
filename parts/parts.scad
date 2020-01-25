@@ -3,6 +3,11 @@
 X_BEAM_SIZE = 370;
 Y_BEAM_SIZE = 331;
 
+// Nema17 stepper motor specs
+NEMA_17_SIZE = 42.3;
+NEMA_17_HEIGHT = 39.8;
+
+// LM12UUE bearing specs
 LM12UUE_L = 32;
 LM12UUE_D = 22;
 
@@ -14,8 +19,13 @@ Y_ROD_GAP = 170;
 // Y rod holders
 Y_ROD_HOLDER_SIZE = [50, 40, 2 * 4 + Y_ROD_DIAMETER];
 
+// Y belt clamp
+Y_BELT_CLAMP_SIZE = [40, 28, 28];
+Y_BELT_CLAMP_FIXATION_HOLE_GAP = 26;
+
 // Y motor mount
 Y_MOTOR_MOUNT_WIDTH = 23;
+Y_MOTOR_MOUNT_MOTOR_BEAM_GAP = 4;
 
 // Y bearing blocks
 Y_BEARING_LENGTH = LM12UUE_L;
@@ -28,8 +38,6 @@ Y_BEARING_BLOCK_FIXATION_HOLE_GAP_Y = 18;
 // Y axis fitting jigs 
 Y_AXIS_FITTING_JIG_TOLERANCE = .2;
 Y_AXIS_FITTING_JIG_CHAMFER = 2;
-
-Y_BELT_CLAMP_FIXATION_HOLE_GAP = 20;
 
 BED_SIZE = 218;
 
@@ -250,7 +258,7 @@ module bed_support_plate_profile() {
   ] / 2;
   
  
-  A = (Y_BEARING_BLOCK_SIZE[2] + Y_BEARING_BLOCK_CHAMFER) / 2;
+  A = (Y_BEARING_BLOCK_SIZE[1] + Y_BEARING_BLOCK_CHAMFER) / 2;
   BEARING_BLOCK_POS_COORDS_LIST = [
     [-Y_ROD_GAP / 2,  (BED_SIZE / 4 - A)],
     [-Y_ROD_GAP / 2, -(BED_SIZE / 4 - A)],  
@@ -262,10 +270,7 @@ module bed_support_plate_profile() {
     [0, -Y_BELT_CLAMP_FIXATION_HOLE_GAP / 2],
   ];
   
-  BELT_CLAMP_COORDS_LIST = [
-    [-15.5,  (BED_SIZE / 2 - 16 - BED_SIZE / 4)],
-    [-15.5, -(BED_SIZE / 2 - 16 - BED_SIZE / 4)],
-  ];
+  BELT_CLAMP_COORDS = [16, 0];
   
   difference() {
     union() {
@@ -293,11 +298,31 @@ module bed_support_plate_profile() {
           m5_circle_laser_cut();
       
     // Belt clamp fixation holes
-    for(bpos = BELT_CLAMP_COORDS_LIST)
-      for(pos = BELT_CLAMP_FIXATION_HOLE_POS_LIST)
-        translate(bpos + pos)
-          m5_circle_laser_cut();
+    for(pos = BELT_CLAMP_FIXATION_HOLE_POS_LIST)
+      translate(pos + BELT_CLAMP_COORDS)
+        m5_circle_laser_cut();
   }
 }
 
-bed_support_plate_profile();
+module bed_support_plate_overlay() {
+  BELT_CLAMP_COORDS = [14, 0];
+  
+  difference() {
+  // Main shape
+  square(size = BED_SIZE, center = true);
+  
+  translate([0, BED_SIZE / 2 - 16])
+    text("this side up", size = 8, halign = "center", valign = "top");
+    
+  // Belt clamp fixation holes
+  projection(cut = true)
+    translate(BELT_CLAMP_COORDS)
+        translate([-6, -Y_BELT_CLAMP_SIZE[0] / 2, Y_BELT_CLAMP_SIZE[2] /2])
+        rotate(180, [0, 1, 0])
+      rotate(90, [0, 0, 1])
+    rotate(90, [1, 0, 0])
+      import("./stl/y-belt-clamp.stl", convexity = 3);
+  }
+}
+
+//bed_support_plate_overlay();
