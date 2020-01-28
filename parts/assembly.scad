@@ -80,6 +80,11 @@ module y_bearing_block_() {
       y_bearing_block();
 }
 
+module y_end_stop_hammer_support() {
+  color(PRINTED_PART_COLOR)
+    import("./stl/y-end-stop-hammer-support.stl", convexity = 3);
+}
+
 module y_belt_clamp() {
   color(PRINTED_PART_COLOR)
     translate([0, -Y_BELT_CLAMP_SIZE[0] / 2, 0])
@@ -129,6 +134,8 @@ module y_motor_assembly() {
 
 
 module bed_assembly() {
+   A = (Y_BEARING_BLOCK_SIZE[1] + Y_BEARING_BLOCK_CHAMFER) / 2;
+  
   // bed support plate
   translate([0, 0, BED_SUPPORT_THICKNESS / 2 + Y_BEARING_BLOCK_SIZE[1] / 2])
     bed_support_plate();
@@ -139,9 +146,11 @@ module bed_assembly() {
     translate([0, 0, 0])
     y_belt_clamp();
   
-  // bearing blocks
-  A = (Y_BEARING_BLOCK_SIZE[1] + Y_BEARING_BLOCK_CHAMFER) / 2;
-  
+  // end stop hammer
+  translate([BED_SIZE / 2 - 16, -(BED_SIZE / 4 - A) - Y_BEARING_BLOCK_SIZE[2] / 2 + Y_ENDSTOP_HAMMER_THICKNESS / 2 + 20, BED_SUPPORT_THICKNESS / 2 + Y_BEARING_BLOCK_SIZE[1] / 2 + BED_SUPPORT_THICKNESS / 2])
+    y_end_stop_hammer_support();
+
+  // bearing blocks 
   translate([-Y_ROD_GAP / 2, -(BED_SIZE / 4 - A), 0])
     y_bearing_block_();
   
@@ -163,7 +172,7 @@ module printer_assembly() {
     y_pulley_idler();
   
   // Y rods
-  translate([0, 0, 40 + Y_ROD_DIAMETER / 2]) {
+  translate([0, 0, 40 + Y_ROD_DIAMETER / 2 + 4]) {
     translate([-Y_ROD_GAP / 2, 0, 0])
       y_rod();
   
@@ -172,8 +181,9 @@ module printer_assembly() {
   }
   
   // bed
-  translate([0, Y_AXIS_POS - BED_SIZE / 2, 40 + 6])
+  translate([0, Y_AXIS_POS - BED_SIZE / 2, 40 + 6 + 4])
     bed_assembly();
 }
+
 
 printer_assembly();

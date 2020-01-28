@@ -23,6 +23,9 @@ Y_ROD_HOLDER_SIZE = [50, 40, 2 * 4 + Y_ROD_DIAMETER];
 Y_BELT_CLAMP_SIZE = [40, 28, 28];
 Y_BELT_CLAMP_FIXATION_HOLE_GAP = 26;
 
+// Y end stop hammer
+Y_ENDSTOP_HAMMER_THICKNESS = 10.5;
+
 // Y motor mount
 Y_MOTOR_MOUNT_WIDTH = 23;
 Y_MOTOR_MOUNT_MOTOR_BEAM_GAP = 4;
@@ -301,6 +304,11 @@ module bed_support_plate_profile() {
     for(pos = BELT_CLAMP_FIXATION_HOLE_POS_LIST)
       translate(pos + BELT_CLAMP_COORDS)
         m5_circle_laser_cut();
+    
+    // Endstop hammer fixation hole
+     translate([BED_SIZE / 2 - 8.75, -(BED_SIZE / 4 - A) - Y_BEARING_BLOCK_SIZE[2] / 2 + Y_ENDSTOP_HAMMER_THICKNESS / 2 + 20])
+      m5_circle_laser_cut();
+    echo(-(BED_SIZE / 4 - A) - Y_BEARING_BLOCK_SIZE[2] / 2 + Y_ENDSTOP_HAMMER_THICKNESS / 2 + 20);
   }
 }
 
