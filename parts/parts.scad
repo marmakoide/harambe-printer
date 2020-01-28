@@ -332,5 +332,5 @@ module bed_support_plate_overlay() {
       import("./stl/y-belt-clamp.stl", convexity = 3);
   }
 }
-
+ bed_support_plate_profile();
 //bed_support_plate_overlay();
