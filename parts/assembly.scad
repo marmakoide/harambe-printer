@@ -80,9 +80,15 @@ module y_bearing_block_() {
       y_bearing_block();
 }
 
+module y_end_stop_support() {
+  color(PRINTED_PART_COLOR)
+    import("./stl/y-endstop-support.stl", convexity = 3);
+}
+
 module y_end_stop_hammer_support() {
   color(PRINTED_PART_COLOR)
-    import("./stl/y-end-stop-hammer-support.stl", convexity = 3);
+    rotate(180, [0, 0, 1])
+    import("./stl/y-endstop-hammer-support.stl", convexity = 3);
 }
 
 module y_belt_clamp() {
@@ -147,17 +153,17 @@ module bed_assembly() {
     y_belt_clamp();
   
   // end stop hammer
-  translate([BED_SIZE / 2 - 16, -(BED_SIZE / 4 - A) - Y_BEARING_BLOCK_SIZE[2] / 2 + Y_ENDSTOP_HAMMER_THICKNESS / 2 + 20, BED_SUPPORT_THICKNESS / 2 + Y_BEARING_BLOCK_SIZE[1] / 2 + BED_SUPPORT_THICKNESS / 2])
+  translate([-(BED_SIZE / 2 - 16), -(BED_SIZE / 4 - A) - Y_BEARING_BLOCK_SIZE[2] / 2 + Y_ENDSTOP_HAMMER_THICKNESS / 2 + 20, BED_SUPPORT_THICKNESS / 2 + Y_BEARING_BLOCK_SIZE[1] / 2 + BED_SUPPORT_THICKNESS / 2])
     y_end_stop_hammer_support();
 
   // bearing blocks 
-  translate([-Y_ROD_GAP / 2, -(BED_SIZE / 4 - A), 0])
+  translate([-Y_ROD_GAP / 2, 0, 0])
     y_bearing_block_();
   
-  translate([-Y_ROD_GAP / 2, (BED_SIZE / 4 - A), 0])
+  translate([ Y_ROD_GAP / 2, -(BED_SIZE / 4 - A), 0])
     y_bearing_block_();
   
-  translate([Y_ROD_GAP / 2, 0, 0])
+  translate([ Y_ROD_GAP / 2, (BED_SIZE / 4 - A), 0])
     y_bearing_block_();
 }
 
@@ -165,11 +171,15 @@ module printer_assembly() {
   // gantry
   gantry_assembly();
   
+  // gantry accessories
   translate([0, -Y_BEAM_SIZE / 2, 40])
     y_motor_assembly();
   
   translate([0,  Y_BEAM_SIZE / 2, 40])
     y_pulley_idler();
+  
+  translate([-Y_ROD_GAP / 2 - 50, -Y_BEAM_SIZE / 2 - 10, 40])
+    y_end_stop_support();
   
   // Y rods
   translate([0, 0, 40 + Y_ROD_DIAMETER / 2 + 4]) {

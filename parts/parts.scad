@@ -44,7 +44,7 @@ Y_AXIS_FITTING_JIG_CHAMFER = 2;
 
 BED_SIZE = 218;
 
-BED_SUPPORT_ADJUSTEMENT_SCREW_GAP = 4;
+BED_SUPPORT_ADJUSTEMENT_SCREW_GAP = 5;
 BED_SUPPORT_ADJUSTEMENT_SCREW_SLOT_LENGTH = 3;
 BED_SUPPORT_THICKNESS = 6;
 
@@ -159,6 +159,10 @@ module m5_teardrop_3d_print() {
   kteardrop(M5_LASER_CUT_HOLE_DIAMETER / 2);
 }
 
+module m3_circle_laser_cut() {
+  kcircle(M3_LASER_CUT_HOLE_DIAMETER / 2);
+}
+
 module m5_circle_laser_cut() {
   kcircle(M5_LASER_CUT_HOLE_DIAMETER / 2);
 }
@@ -251,7 +255,7 @@ module y_axis_fitting_jig_b_profile() {
 
 module bed_support_plate_profile() {
   BED_FIXATION_HOLE_POS_COORDS_LIST =
-    [[-1, -1], [-1, 1], [1, 1], [1, -1], [-1, 0]];
+    [[-1, -1], [-1, 1], [1, 1], [1, -1], [1, 0]];
   
   BEARING_BLOCK_FIXATION_HOLE_POS_LIST = [
     [-Y_BEARING_BLOCK_FIXATION_HOLE_GAP_X, -Y_BEARING_BLOCK_FIXATION_HOLE_GAP_Y],
@@ -263,9 +267,9 @@ module bed_support_plate_profile() {
  
   A = (Y_BEARING_BLOCK_SIZE[1] + Y_BEARING_BLOCK_CHAMFER) / 2;
   BEARING_BLOCK_POS_COORDS_LIST = [
-    [-Y_ROD_GAP / 2,  (BED_SIZE / 4 - A)],
-    [-Y_ROD_GAP / 2, -(BED_SIZE / 4 - A)],  
-    [ Y_ROD_GAP / 2, 0]
+    [-Y_ROD_GAP / 2, 0],
+    [ Y_ROD_GAP / 2,  (BED_SIZE / 4 - A)],
+    [ Y_ROD_GAP / 2, -(BED_SIZE / 4 - A)]
   ];
   
   BELT_CLAMP_FIXATION_HOLE_POS_LIST = [
@@ -284,7 +288,7 @@ module bed_support_plate_profile() {
       for(pos = BED_FIXATION_HOLE_POS_COORDS_LIST)
         translate((BED_SIZE / 2 - BED_SUPPORT_ADJUSTEMENT_SCREW_GAP) * pos)
           rotate(180 / 8)
-            circle(r = (2 * BED_SUPPORT_ADJUSTEMENT_SCREW_GAP) * octagon_circumradius, $fn = 8);
+            circle(r = 8 * octagon_circumradius, $fn = 8);
     }
     
     // Bed adjustment screw holes
@@ -306,11 +310,11 @@ module bed_support_plate_profile() {
         m5_circle_laser_cut();
     
     // Endstop hammer fixation hole
-     translate([BED_SIZE / 2 - 8.75, -(BED_SIZE / 4 - A) - Y_BEARING_BLOCK_SIZE[2] / 2 + Y_ENDSTOP_HAMMER_THICKNESS / 2 + 20])
+     translate([-(BED_SIZE / 2 - 8.75), -(BED_SIZE / 4 - A) - Y_BEARING_BLOCK_SIZE[2] / 2 + Y_ENDSTOP_HAMMER_THICKNESS / 2 + 20])
       m5_circle_laser_cut();
-    echo(-(BED_SIZE / 4 - A) - Y_BEARING_BLOCK_SIZE[2] / 2 + Y_ENDSTOP_HAMMER_THICKNESS / 2 + 20);
   }
 }
+
 
 module bed_support_plate_overlay() {
   BELT_CLAMP_COORDS = [14, 0];
@@ -332,5 +336,4 @@ module bed_support_plate_overlay() {
       import("./stl/y-belt-clamp.stl", convexity = 3);
   }
 }
- bed_support_plate_profile();
-//bed_support_plate_overlay();
+
