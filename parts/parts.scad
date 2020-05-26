@@ -1,15 +1,35 @@
 // --- Parameters ------------------------------------------------------------
 
-X_BEAM_SIZE = 370;
-Y_BEAM_SIZE = 331;
+X_BEAM_SIZE  = 370;
+Y_BEAM_SIZE  = 331;
+Z_BEAM_SIZE  = 359; 
+ZX_BEAM_SIZE = 290; 
 
 // Nema17 stepper motor specs
 NEMA_17_SIZE = 42.3;
-NEMA_17_HEIGHT = 39.8;
+XYZ_NEMA_17_HEIGHT = 39.8;
+E_NEMA_17_HEIGHT = 23;
+
+// Gates pulleys specs
+GATES_TOOTHED_IDLER_OUTER_DIAMETER = 15;
+
+// LM8UUE bearing specs
+LM8UUE_L = 25;
+LM8UUE_D = 16;
 
 // LM12UUE bearing specs
 LM12UUE_L = 32;
 LM12UUE_D = 22;
+
+// Extruder elements
+BONDTECH_BMG_MOUNT_PLATE_SIZE = [23, 62];
+BONDTECH_BMG_MOUNT_SHEET_THICKNESS = 3;
+BONDTECH_BMG_MOUNT_HOLE_DIAMETER = 4;
+
+// X axis design
+X_ROD_DIAMETER = 8;
+X_ROD_LENGTH = 500;
+X_ROD_GAP = 50;
 
 // Y axis design
 Y_ROD_DIAMETER = 12;
@@ -29,6 +49,14 @@ Y_ENDSTOP_HAMMER_THICKNESS = 10.5;
 // Y motor mount
 Y_MOTOR_MOUNT_WIDTH = 23;
 Y_MOTOR_MOUNT_MOTOR_BEAM_GAP = 4;
+
+// X bearing blocks
+X_BEARING_LENGTH = LM8UUE_L;
+X_BEARING_DIAMETER = LM8UUE_D;
+X_BEARING_BLOCK_CHAMFER = 1;
+X_BEARING_BLOCK_SIZE = [34, 22, X_BEARING_LENGTH + X_BEARING_BLOCK_CHAMFER];
+X_BEARING_BLOCK_FIXATION_HOLE_GAP_X = 24;
+X_BEARING_BLOCK_FIXATION_HOLE_GAP_Y = 13;
 
 // Y bearing blocks
 Y_BEARING_LENGTH = LM12UUE_L;
@@ -155,6 +183,10 @@ module k_negative_rectangle(size, chamfer) {
 
 // --- Commonly used elements -------------------------------------------------
 
+module m4_teardrop_3d_print() {
+  kteardrop(M4_LASER_CUT_HOLE_DIAMETER / 2);
+}
+
 module m5_teardrop_3d_print() {
   kteardrop(M5_LASER_CUT_HOLE_DIAMETER / 2);
 }
@@ -168,6 +200,107 @@ module m5_circle_laser_cut() {
 }
 
 
+
+module round_hole_chamfer(radius, chamfer) {
+  translate([0, 0, (radius + chamfer) / 2 - 1])
+     kcone(radius + chamfer + 2, radius + chamfer + 2);
+} 
+
+
+// --- Bondtech BMG extruder mount ---------------------------------------------------------------
+
+module bondtech_bmg_mount() {
+  color(METAL_COLOR) {
+    linear_extrude(height = BONDTECH_BMG_MOUNT_SHEET_THICKNESS, center = true) {
+      difference() {
+        square(BONDTECH_BMG_MOUNT_PLATE_SIZE, center = true);
+        translate([-15 / 2, -55 / 2])
+          kcircle(BONDTECH_BMG_MOUNT_HOLE_DIAMETER / 2);
+        translate([ 15 / 2, -55 / 2])
+          kcircle(BONDTECH_BMG_MOUNT_HOLE_DIAMETER / 2);
+        translate([-15 / 2,  55 / 2])
+          kcircle(BONDTECH_BMG_MOUNT_HOLE_DIAMETER / 2);
+        translate([ 15 / 2,  55 / 2])
+          kcircle(BONDTECH_BMG_MOUNT_HOLE_DIAMETER / 2);
+      }
+    }
+    
+    translate([-(BONDTECH_BMG_MOUNT_PLATE_SIZE[0] + BONDTECH_BMG_MOUNT_SHEET_THICKNESS) / 2, 0, 43 / 2 + BONDTECH_BMG_MOUNT_SHEET_THICKNESS])
+    rotate(90, [1, 0, 0])
+    rotate(90, [0, 1, 0])
+    linear_extrude(height = BONDTECH_BMG_MOUNT_SHEET_THICKNESS, center = true) {
+      difference() {
+        translate([0, -BONDTECH_BMG_MOUNT_SHEET_THICKNESS])
+          square([43, 46], center = true);
+        
+        translate([0, -BONDTECH_BMG_MOUNT_SHEET_THICKNESS / 2]) {
+          kcircle(23 / 2);
+        
+          translate([-31 / 2, -31 / 2])
+            kcircle(BONDTECH_BMG_MOUNT_HOLE_DIAMETER / 2);
+          translate([ 31 / 2, -31 / 2])
+            kcircle(BONDTECH_BMG_MOUNT_HOLE_DIAMETER / 2);
+          translate([-31 / 2,  31 / 2])
+            kcircle(BONDTECH_BMG_MOUNT_HOLE_DIAMETER / 2);
+          translate([ 31 / 2,  31 / 2])
+            kcircle(BONDTECH_BMG_MOUNT_HOLE_DIAMETER / 2);
+        }
+      }
+    }
+  }
+}
+
+
+
+// --- X bearing block --------------------------------------------------------
+
+module x_bearing_block() {
+  FLAT_HEIGHT = 3;
+  A = X_BEARING_BLOCK_SIZE[0] - X_BEARING_BLOCK_FIXATION_HOLE_GAP_X;
+  
+  BEARING_BLOCK_FIXATION_HOLE_POS_LIST = [
+    [-X_BEARING_BLOCK_FIXATION_HOLE_GAP_X, 0, -X_BEARING_BLOCK_FIXATION_HOLE_GAP_Y],
+    [ X_BEARING_BLOCK_FIXATION_HOLE_GAP_X, 0, -X_BEARING_BLOCK_FIXATION_HOLE_GAP_Y],
+    [-X_BEARING_BLOCK_FIXATION_HOLE_GAP_X, 0,  X_BEARING_BLOCK_FIXATION_HOLE_GAP_Y],
+    [ X_BEARING_BLOCK_FIXATION_HOLE_GAP_X, 0,  X_BEARING_BLOCK_FIXATION_HOLE_GAP_Y]
+  ] / 2;
+  
+  difference() {
+    // Main shape
+    linear_extrude(height = X_BEARING_BLOCK_SIZE[2], convexity = 2, center = true)
+      difference() {
+        // Bearing hole profile
+        polygon([
+          [ X_BEARING_BLOCK_SIZE[0] / 2, -X_BEARING_BLOCK_SIZE[1] / 2],
+          [ X_BEARING_BLOCK_SIZE[0] / 2,  X_BEARING_BLOCK_SIZE[1] / 2 - FLAT_HEIGHT],
+          [ X_BEARING_BLOCK_SIZE[0] / 2 - A,  X_BEARING_BLOCK_SIZE[1] / 2 - FLAT_HEIGHT],
+          [ X_BEARING_BLOCK_SIZE[0] / 2 - A - FLAT_HEIGHT,  X_BEARING_BLOCK_SIZE[1] / 2],
+          [-X_BEARING_BLOCK_SIZE[0] / 2 + A + FLAT_HEIGHT,  X_BEARING_BLOCK_SIZE[1] / 2], 
+          [-X_BEARING_BLOCK_SIZE[0] / 2 + A,  X_BEARING_BLOCK_SIZE[1] / 2 - FLAT_HEIGHT],
+          [-X_BEARING_BLOCK_SIZE[0] / 2,  X_BEARING_BLOCK_SIZE[1] / 2 - FLAT_HEIGHT],
+          [-X_BEARING_BLOCK_SIZE[0] / 2, -X_BEARING_BLOCK_SIZE[1] / 2],        
+        ], convexity = 1);
+      
+        // Bearing hole
+        kcircle(X_BEARING_DIAMETER / 2);
+      }
+      
+    // Fixation holes
+    for(pos = BEARING_BLOCK_FIXATION_HOLE_POS_LIST)
+      translate(pos)
+        rotate(90, [1, 0, 0])
+          linear_extrude(height = 2 * X_BEARING_BLOCK_SIZE[1], convexity = 1, center = true)
+            rotate(90)
+              m4_teardrop_3d_print();
+    
+    //
+    translate([0, 0, X_BEARING_BLOCK_SIZE[2] / 2])
+      rotate(180, [1, 0, 0])
+        round_hole_chamfer(X_BEARING_DIAMETER / 2, X_BEARING_BLOCK_CHAMFER);   
+  }  
+}
+
+//x_bearing_block();
 
 // --- Y bearing block --------------------------------------------------------
 
@@ -210,14 +343,14 @@ module y_bearing_block() {
             rotate(90)
               m5_teardrop_3d_print();
     
-    //
-    translate([0, 0, Y_BEARING_DIAMETER / 2])
+    translate([0, 0, Y_BEARING_BLOCK_SIZE[2] / 2])
       rotate(180, [1, 0, 0])
-        kcone(Y_BEARING_DIAMETER / 2 + 2 * Y_BEARING_BLOCK_CHAMFER, Y_BEARING_DIAMETER / 2 + 2 * Y_BEARING_BLOCK_CHAMFER);   
+        round_hole_chamfer(Y_BEARING_DIAMETER / 2, Y_BEARING_BLOCK_CHAMFER);
   }  
 }
 
-
+//translate([-50, 0, 0])
+//y_bearing_block();
 
 
 // --- Y axis fitting jig -----------------------------------------------------
