@@ -4,41 +4,11 @@ X_AXIS_POS = 0 - BED_SIZE / 2;
 Y_AXIS_POS = BED_SIZE / 2; //BED_SIZE - 9;
 Z_AXIS_POS = 0;
 
-BEAM_COLOR = "SlateGray";
-PRINTED_PART_COLOR = "Orange";
-METAL_COLOR = "Gainsboro";
-BELT_COLOR = "Black";
-
 
 
 /*
  * Prefab parts
  */
-
-module gates_toothed_idler_9mm() {
-  HOLE_DIAMETER = 5;
-  INNER_DIAMETER = 12.22;
-  OUTER_DIAMETER = GATES_TOOTHED_IDLER_OUTER_DIAMETER;
-  LENGTH = 14;
-  BORDER_SIZE = 1.5;
-  
-  color(METAL_COLOR) {
-    difference() {
-      union() {
-        kcylinder(INNER_DIAMETER / 2, LENGTH);
-      
-        translate([0, 0, (LENGTH - BORDER_SIZE) / 2])
-          kcylinder(OUTER_DIAMETER / 2, BORDER_SIZE);
-        
-        translate([0, 0, -(LENGTH - BORDER_SIZE) / 2])
-          kcylinder(OUTER_DIAMETER / 2, BORDER_SIZE);
-      }
-      
-      kcylinder(HOLE_DIAMETER / 2, 16.);      
-    }
-  }
-}
-
 
 module bmg_extruder() {
   CUBE_SIZE = [42, 33, 33];
@@ -320,14 +290,26 @@ module bed_assembly() {
     y_end_stop_hammer_support();
 
   // bearing blocks 
-  translate([-Y_ROD_GAP / 2, 0, 0])
+  translate([-Y_ROD_GAP / 2, 0, 0]) {
+    rotate(90, [1, 0, 0])
+      lm12uue();
+
     y_bearing_block_();
+  }
   
-  translate([ Y_ROD_GAP / 2, -(BED_SIZE / 4 - A), 0])
+  translate([ Y_ROD_GAP / 2, -(BED_SIZE / 4 - A), 0]) {
+    rotate(90, [1, 0, 0])
+      lm12uue();
+    
     y_bearing_block_();
+  }
   
-  translate([ Y_ROD_GAP / 2, (BED_SIZE / 4 - A), 0])
+  translate([ Y_ROD_GAP / 2, (BED_SIZE / 4 - A), 0]) {
+    rotate(90, [1, 0, 0])
+      lm12uue();
+
     y_bearing_block_();
+  }
 }
 
 

@@ -1,5 +1,10 @@
 // --- Parameters ------------------------------------------------------------
 
+BEAM_COLOR = "SlateGray";
+PRINTED_PART_COLOR = "Orange";
+METAL_COLOR = "Gainsboro";
+BELT_COLOR = "Black";
+
 X_BEAM_SIZE  = 370;
 Y_BEAM_SIZE  = 331;
 Z_BEAM_SIZE  = 359; 
@@ -205,6 +210,56 @@ module round_hole_chamfer(radius, chamfer) {
   translate([0, 0, (radius + chamfer) / 2 - 1])
      kcone(radius + chamfer + 2, radius + chamfer + 2);
 } 
+
+
+// --- Linear bearings ---------------------------------------------------------------------------
+
+module lm12uue() {
+  color(METAL_COLOR)
+    difference() {
+      kcylinder(LM12UUE_D / 2, LM12UUE_L);
+      kcylinder(6, LM12UUE_L + 2);
+    }
+}
+
+
+
+module lm8uue() {
+  color(METAL_COLOR)
+    difference() {
+      kcylinder(LM8UUE_D / 2, LM8UUE_L);
+      kcylinder(4, LM8UUE_L + 2);
+    }
+}
+
+
+
+// --- Gates pulley idler for 9mm 2GT belts ------------------------------------------------------
+
+module gates_toothed_idler_9mm() {
+  HOLE_DIAMETER = 5;
+  INNER_DIAMETER = 12.22;
+  OUTER_DIAMETER = GATES_TOOTHED_IDLER_OUTER_DIAMETER;
+  LENGTH = 14;
+  BORDER_SIZE = 1.5;
+  
+  color(METAL_COLOR) {
+    difference() {
+      union() {
+        kcylinder(INNER_DIAMETER / 2, LENGTH);
+      
+        translate([0, 0, (LENGTH - BORDER_SIZE) / 2])
+          kcylinder(OUTER_DIAMETER / 2, BORDER_SIZE);
+        
+        translate([0, 0, -(LENGTH - BORDER_SIZE) / 2])
+          kcylinder(OUTER_DIAMETER / 2, BORDER_SIZE);
+      }
+      
+      kcylinder(HOLE_DIAMETER / 2, 16.);      
+    }
+  }
+}
+
 
 
 // --- Bondtech BMG extruder mount ---------------------------------------------------------------
@@ -470,3 +525,6 @@ module bed_support_plate_overlay() {
   }
 }
 
+
+
+ bondtech_bmg_mount();
