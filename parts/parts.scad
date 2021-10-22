@@ -1,3 +1,7 @@
+include <utils.scad>
+
+
+
 // --- Parameters ------------------------------------------------------------
 
 BEAM_COLOR = "SlateGray";
@@ -17,6 +21,10 @@ E_NEMA_17_HEIGHT = 23;
 
 // Gates pulleys specs
 GATES_TOOTHED_IDLER_OUTER_DIAMETER = 15;
+
+// E3D V6 heatblock
+E3D_V6_HEATBLOCK_SIZE = [23, 16, 11.5];
+E3D_V6_HEATBLOCK_SIZE_FILAMENT_PATH_OFFSET = 8;
 
 // LM8UUE bearing specs
 LM8UUE_L = 25;
@@ -41,6 +49,11 @@ Y_ROD_DIAMETER = 12;
 Y_ROD_LENGTH = Y_BEAM_SIZE + 40;
 Y_ROD_GAP = 170;
 
+// Z axis design
+Z_ROD_DIAMETER = 12;
+Z_ROD_LENGTH = Z_BEAM_SIZE;
+Z_ROD_GAP = X_BEAM_SIZE - 20; 
+
 // Y rod holders
 Y_ROD_HOLDER_SIZE = [50, 40, 2 * 4 + Y_ROD_DIAMETER];
 
@@ -58,16 +71,16 @@ Y_MOTOR_MOUNT_MOTOR_BEAM_GAP = 4;
 // X bearing blocks
 X_BEARING_LENGTH = LM8UUE_L;
 X_BEARING_DIAMETER = LM8UUE_D;
-X_BEARING_BLOCK_CHAMFER = 1;
-X_BEARING_BLOCK_SIZE = [34, 22, X_BEARING_LENGTH + X_BEARING_BLOCK_CHAMFER];
+X_BEARING_BLOCK_BEVEL = 1;
+X_BEARING_BLOCK_SIZE = [34, 22, X_BEARING_LENGTH + X_BEARING_BLOCK_BEVEL];
 X_BEARING_BLOCK_FIXATION_HOLE_GAP_X = 24;
 X_BEARING_BLOCK_FIXATION_HOLE_GAP_Y = 13;
 
 // Y bearing blocks
 Y_BEARING_LENGTH = LM12UUE_L;
 Y_BEARING_DIAMETER = LM12UUE_D;
-Y_BEARING_BLOCK_CHAMFER = 1;
-Y_BEARING_BLOCK_SIZE = [40, 28, Y_BEARING_LENGTH + Y_BEARING_BLOCK_CHAMFER];
+Y_BEARING_BLOCK_BEVEL = 1;
+Y_BEARING_BLOCK_SIZE = [40, 28, Y_BEARING_LENGTH + Y_BEARING_BLOCK_BEVEL];
 Y_BEARING_BLOCK_FIXATION_HOLE_GAP_X = 30.5;
 Y_BEARING_BLOCK_FIXATION_HOLE_GAP_Y = 18;
 
@@ -88,91 +101,11 @@ M4_LASER_CUT_HOLE_DIAMETER = 4.;
 M5_3D_PRINT_HOLE_DIAMETER = 5.2;
 M5_LASER_CUT_HOLE_DIAMETER = 5.;
 
-CHORD_LEN = .4; // Length of segments used to approximate curves
-
-
 
 // --- Utilities -------------------------------------------------------------
 
-function norm2(v) =
-  sqrt(v * v);
-
-function dist(A, B) =
-	norm2([B[0] - A[0], B[1] - A[1]]);
-  
-  
-
 // Circumradius of an octagon with size 1
 octagon_circumradius = (sqrt(4 + 2 * sqrt(2))) / 2;
-
-
-
-/*
- * Produce n evenly spaced values in [a, b] interval
- */
- 
-function linspace(a, b, n) =
-  [ for (_i = [ 0 : n - 1 ] ) a + _i * (b - a) / (n - 1) ];
-  
-function linspace_noend(a, b, n) =
-  [ for (_i = [ 0 : n - 1 ] ) a + _i * (b - a) / n ];
-      
-  
-
-/*
- * Generic shape definition
- */
-
-function chord_len_2_angle(radius, chord_len) =
-  acos(1. - (chord_len * chord_len) / (2 * radius * radius));
-	
-function chord_len_2_step_count(chord_len, radius, angle) = 
-  ceil(angle / chord_len_2_angle(radius, chord_len));
-
-module kcircle_sector(radius, angle) {
-	n = chord_len_2_step_count(CHORD_LEN, radius, angle);
-	polygon(concat([[0,0]], radius * [for(angle = linspace(0, angle, n)) [cos(angle), sin(angle)]]), convexity = 1);
-}
-
-module kcircle(radius) {
-	n = chord_len_2_step_count(CHORD_LEN, radius, 360);
-	polygon(radius * [for(alpha = linspace_noend(0, 360, n)) [cos(alpha), sin(alpha)]], convexity = 1);	
-}
-
-module kteardrop(radius) {
-  angle = 270;
-	n = chord_len_2_step_count(CHORD_LEN, radius, angle);
-  rotate(45)
-    polygon(concat([[radius,-radius]], radius * [for(angle = linspace(0, angle, n)) [cos(angle), sin(angle)]]), convexity = 1);
-}
-
-module kcylinder(radius, height) {
-	linear_extrude(height = height, center = true, convexity = 1)
-		kcircle(radius);
-}
-
-module kcone(radius, height) {
-  linear_extrude(height = height, center = true, scale = 0, convexity = 1)
-    kcircle(radius);
-}
-
-module kcapsule(length, radius) {
-	n = chord_len_2_step_count(CHORD_LEN, radius, 180);
-
-	hi = [for(alpha = linspace( -90,  90., n)) [radius * cos(alpha) + length / 2, radius * sin(alpha)]];
-	lo = [for(alpha = linspace(  90,  270, n)) [radius * cos(alpha) - length / 2, radius * sin(alpha)]];
-
-	polygon(concat(hi, lo), convexity = 1);
-}
-
-module kcapsule_from_end_points(A, B, radius) {
-	length = dist(A, B);
-	U = [B[0] - A[0], B[1] - A[1]] / length;
-	
-	translate(.5 * [A[0] + B[0], A[1] + B[1]])
-		rotate(atan2(U[1], U[0]))
-			kcapsule(length, radius);
-}
 
 module k_negative_rectangle(size, chamfer) {
   square(size, center = true);
@@ -206,10 +139,19 @@ module m5_circle_laser_cut() {
 
 
 
-module round_hole_chamfer(radius, chamfer) {
-  translate([0, 0, (radius + chamfer) / 2 - 1])
-     kcone(radius + chamfer + 2, radius + chamfer + 2);
-} 
+// --- GT2 belt ----------------------------------------------------------------------------------
+
+module belt(length, diameter, width) {
+  THICKNESS = 0.63;
+  
+  color(BELT_COLOR)
+    linear_extrude(height = width, center = true)
+      difference() {
+        kcapsule(length, diameter / 2 + THICKNESS);
+        kcapsule(length, diameter / 2);
+      }
+}
+
 
 
 // --- Linear bearings ---------------------------------------------------------------------------
@@ -348,14 +290,15 @@ module x_bearing_block() {
             rotate(90)
               m4_teardrop_3d_print();
     
-    //
+    // Bearing hole bevel
     translate([0, 0, X_BEARING_BLOCK_SIZE[2] / 2])
-      rotate(180, [1, 0, 0])
-        round_hole_chamfer(X_BEARING_DIAMETER / 2, X_BEARING_BLOCK_CHAMFER);   
+      round_hole_bevel(X_BEARING_DIAMETER / 2, X_BEARING_BLOCK_BEVEL, [0, 0, 1]);    
   }  
 }
 
 //x_bearing_block();
+
+
 
 // --- Y bearing block --------------------------------------------------------
 
@@ -398,14 +341,14 @@ module y_bearing_block() {
             rotate(90)
               m5_teardrop_3d_print();
     
+    // Bearing hole bevel
     translate([0, 0, Y_BEARING_BLOCK_SIZE[2] / 2])
-      rotate(180, [1, 0, 0])
-        round_hole_chamfer(Y_BEARING_DIAMETER / 2, Y_BEARING_BLOCK_CHAMFER);
+      round_hole_bevel(Y_BEARING_DIAMETER / 2, Y_BEARING_BLOCK_BEVEL, [0, 0, 1]);
   }  
 }
 
-//translate([-50, 0, 0])
 //y_bearing_block();
+
 
 
 // --- Y axis fitting jig -----------------------------------------------------
@@ -453,7 +396,7 @@ module bed_support_plate_profile() {
   ] / 2;
   
  
-  A = (Y_BEARING_BLOCK_SIZE[1] + Y_BEARING_BLOCK_CHAMFER) / 2;
+  A = (Y_BEARING_BLOCK_SIZE[1] + Y_BEARING_BLOCK_BEVEL) / 2;
   BEARING_BLOCK_POS_COORDS_LIST = [
     [-Y_ROD_GAP / 2, 0],
     [ Y_ROD_GAP / 2,  (BED_SIZE / 4 - A)],
@@ -526,5 +469,107 @@ module bed_support_plate_overlay() {
 }
 
 
+// --- Vslot -------------------------------------------------------------------------------------
 
+module vslot_rail_shape() {
+  PARAM_A = 5.68;
+  PARAM_B = 6.25;
+  PARAM_C = 7.80;
+  PARAM_D = 1.80;
+  PARAM_E = 1.64;
+  PARAM_F = 4.30;
+  
+  A = [.5 * PARAM_A, 0];
+  B = A + [PARAM_F - PARAM_E, PARAM_F - PARAM_E];
+  C = B + [0, PARAM_E];
+  D = [.5 * PARAM_B, PARAM_F];
+  E = D + [PARAM_D, PARAM_D];
+  F = E + [0, 5];
+  
+  polygon([A, B, C, D, E, F, mirror_x(F), mirror_x(E), mirror_x(D), mirror_x(C), mirror_x(B), mirror_x(A)]);
+}
+
+module vslot_rail_hole(length) {
+  linear_extrude(length + 10, center = true)
+    vslot_rail_shape();
+}
+
+module vslot_beam(length) {
+  PARAM_C = 7.80;
+
+  difference() {
+    cube([length, 40, 20], center = true);
+
+    translate([0, 10 + PARAM_C / 2, 0])    
+      rotate(90, [0, 1, 0])
+        vslot_rail_hole(length);
+
+    translate([0, -(10 + PARAM_C / 2), 0]) 
+      rotate(180, [0, 0, 1])    
+      rotate(90, [0, 1, 0])
+        vslot_rail_hole(length);
+    
+    translate([0, 10, (PARAM_C / 2)]) 
+      rotate(90, [1, 0, 0])    
+      rotate(90, [0, 1, 0])
+        vslot_rail_hole(length);
+
+    translate([0, -10, (PARAM_C / 2)]) 
+      rotate(90, [1, 0, 0])    
+      rotate(90, [0, 1, 0])
+        vslot_rail_hole(length);
+    
+    translate([0, 10, -(PARAM_C / 2)]) 
+      rotate(-90, [1, 0, 0])    
+      rotate(90, [0, 1, 0])
+        vslot_rail_hole(length);
+
+    translate([0, -10, -(PARAM_C / 2)]) 
+      rotate(-90, [1, 0, 0])    
+      rotate(90, [0, 1, 0])
+        vslot_rail_hole(length);
+  }
+}
+
+
+
+// -----------------------------------------------------------------------------------------------
+
+/*
+BEARING_GAP = 2;
+
+module x_rod() {
+  color(METAL_COLOR)
+    rotate(90, [0, 1, 0])
+      kcylinder(X_ROD_DIAMETER / 2, X_ROD_LENGTH);
+}
+
+// Place the parts we need to attach together 
+translate([0, 0, -X_ROD_GAP / 2])
+  x_rod();
+  
+translate([0, 0, X_ROD_GAP / 2])
+  x_rod();  
+
+translate([-(LM8UUE_L + BEARING_GAP) / 2, 0, X_ROD_GAP / 2])
+rotate(90, [0, 1, 0])
+  lm8uue();
+
+translate([ (LM8UUE_L + BEARING_GAP) / 2, 0, X_ROD_GAP / 2])
+rotate(90, [0, 1, 0])
+  lm8uue();
+
+translate([0, 0, -X_ROD_GAP / 2])
+rotate(90, [0, 1, 0])
+  lm8uue();
+
+translate([0, (30 + BONDTECH_BMG_MOUNT_SHEET_THICKNESS) / 2, -15])
+rotate(180, [0, 0, 1])
+rotate(90, [1, 0, 0])
  bondtech_bmg_mount();
+
+rotate(90, [1, 0, 0]) 
+  belt(500, GATES_TOOTHED_IDLER_OUTER_DIAMETER, 9);
+*/
+
+

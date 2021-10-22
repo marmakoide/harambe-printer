@@ -13,13 +13,33 @@ Z_AXIS_POS = 0;
 module bmg_extruder() {
   CUBE_SIZE = [42, 33, 33];
   
+  HEATBREAK_HEIGHT = 6;
+  HEATBREAK_DIAMETER = 5.88;
+
+  
+  // Body (upper part is not represented)
   hull() {
     cube(CUBE_SIZE, center = true);
     rotate(90, [0, 0, 1])
       cube(CUBE_SIZE, center = true);
   }
   
-  
+  // Bottom part of the heatbreak
+  translate([-(CUBE_SIZE[0] + HEATBREAK_HEIGHT) / 2, 4.25, 23 - CUBE_SIZE[0] / 2]) {
+    // Bottom part of the heatbreak
+    rotate(90, [0, 1, 0])
+      kcylinder(HEATBREAK_DIAMETER / 2, HEATBREAK_HEIGHT);
+    
+    // Heatblock
+    translate([-3 - 11.5 / 2 + 6 - 2, 0, 0])
+    rotate(90, [0, 1, 0])
+    translate([E3D_V6_HEATBLOCK_SIZE_FILAMENT_PATH_OFFSET / 2, 0, 0])
+    difference() {
+      cube(E3D_V6_HEATBLOCK_SIZE, center = true);
+      translate([E3D_V6_HEATBLOCK_SIZE_FILAMENT_PATH_OFFSET - E3D_V6_HEATBLOCK_SIZE[0] / 2, 0, 0])
+      kcylinder(3, E3D_V6_HEATBLOCK_SIZE[2] + 2);
+    }
+  }
 }
 
 
@@ -78,7 +98,7 @@ module nema17(length) {
 
 module beam(length) {
   color(BEAM_COLOR)
-    cube([length, 40, 20], center = true);
+    vslot_beam(length);
 }
 
 module x_beam() {
@@ -180,6 +200,7 @@ module y_bearing_block_() {
   color(PRINTED_PART_COLOR)
     rotate(90, [1, 0, 0])
     rotate(180, [0, 0, 1])
+      render(convexity = 2)
       y_bearing_block();
 }
 
@@ -263,6 +284,28 @@ module y_axis_assembly() {
 
 
 /*
+ * Z axis parts
+ */
+
+module z_rod() {
+  color(METAL_COLOR)
+    kcylinder(Z_ROD_DIAMETER / 2, Z_ROD_LENGTH);
+}
+
+module z_axis_assembly() {
+  // Z rods
+  //translate([0, 0, Y_ROD_DIAMETER / 2 + 4]) {
+    translate([-Z_ROD_GAP / 2, 0, Z_ROD_LENGTH / 2])
+      z_rod();
+  
+    translate([ Z_ROD_GAP / 2, 0, Z_ROD_LENGTH / 2])
+      z_rod();
+  //}  
+}
+
+
+
+/*
  * Bed parts
  */
 
@@ -273,7 +316,7 @@ module bed_support_plate() {
 }
 
 module bed_assembly() {
-   A = (Y_BEARING_BLOCK_SIZE[1] + Y_BEARING_BLOCK_CHAMFER) / 2;
+   A = (Y_BEARING_BLOCK_SIZE[1] + Y_BEARING_BLOCK_BEVEL) / 2;
   
   // bed support plate
   translate([0, 0, BED_SUPPORT_THICKNESS / 2 + Y_BEARING_BLOCK_SIZE[1] / 2])
@@ -291,6 +334,7 @@ module bed_assembly() {
 
   // bearing blocks 
   translate([-Y_ROD_GAP / 2, 0, 0]) {
+    translate([0, Y_BEARING_BLOCK_BEVEL / 2, 0])
     rotate(90, [1, 0, 0])
       lm12uue();
 
@@ -298,6 +342,7 @@ module bed_assembly() {
   }
   
   translate([ Y_ROD_GAP / 2, -(BED_SIZE / 4 - A), 0]) {
+    translate([0, Y_BEARING_BLOCK_BEVEL / 2, 0])
     rotate(90, [1, 0, 0])
       lm12uue();
     
@@ -305,6 +350,7 @@ module bed_assembly() {
   }
   
   translate([ Y_ROD_GAP / 2, (BED_SIZE / 4 - A), 0]) {
+    translate([0, Y_BEARING_BLOCK_BEVEL / 2, 0])
     rotate(90, [1, 0, 0])
       lm12uue();
 
@@ -352,19 +398,10 @@ module printer_assembly() {
   // y axis
   translate([0, 0, 40])  
     y_axis_assembly();
-}
-
-
-module belt(length, diameter, width) {
-  THICKNESS = 0.63;
   
-  color(BELT_COLOR)
-    linear_extrude(height = width, center = true)
-      difference() {
-        kcapsule(length, diameter / 2 + THICKNESS);
-        kcapsule(length, diameter / 2);
-      }
+  // z axis
+  translate([0, Z_ROD_DIAMETER / 2 + 10, 20])  
+    z_axis_assembly();
 }
-
 
 printer_assembly();
